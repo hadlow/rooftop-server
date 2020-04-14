@@ -1,0 +1,11 @@
+{
+	"compilerOptions": {
+		"baseUrl": "./src",
+		"outDir": "./build",
+		"target": "es3",
+		"module": "commonjs",
+		"moduleResolution": "node",
+		"watch": true,
+		"lib": ["es2017"]
+	}
+}
