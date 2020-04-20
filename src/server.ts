@@ -1,24 +1,28 @@
-import { Client } from './client';
-import { Room } from './room';
+import * as Helper from './helpers';
+import { DB } from './db';
 
 export class Server
 {
-	private rooms: object = {};
+	private db: DB;
+
+	private io: any;
 
 	constructor(io)
 	{
-		io.on('connection', (socket) =>
+		this.io = io;
+		this.db = new DB();
+
+		this.io.on('connection', (socket) =>
 		{
-			console.log('client connected: ' + socket.id);
+			console.log("Joinging: " + socket.id);
+
 			this.create(socket);
 
 			this.join(socket);
 
-			// Disconnect the socket
-			socket.on('disconnect', () =>
-			{
-				
-			});
+			this.move(socket);
+
+			this.leave(socket);
 		});
 	}
 
@@ -26,19 +30,35 @@ export class Server
 	{
 		socket.on('create', (data) =>
 		{
-			let client = new Client(socket);
-			let room = new Room();
-
-			room.addClient(client);
-			
-			this.rooms[room.getId()] = room;
-			
-			let payload = {
-				"client": client.getId(),
-				"room": room.getId()
+			let room = {
+				id: Helper.roomId(),
+				password: "",
+				background: "",
+				host: socket.id
 			};
-			
-			socket.emit('created.success', payload);
+
+			let client = {
+				id: socket.id,
+				room: room.id,
+				x: 0,
+				y: 0
+			};
+
+			this.db.setClient(client, () =>
+			{
+				this.db.setRoom(room, () =>
+				{
+					this.db.addClientToRoom(room.id, client.id, () =>
+					{
+
+					});
+				});
+			});
+
+			socket.emit('created', client);
+
+			// Join room
+			socket.join(room.id);
 		});
 	}
 
@@ -46,35 +66,107 @@ export class Server
 	{
 		socket.on('join', (data) =>
 		{
-			let client = new Client(socket);
+			// If room doesn't exist then let the client know
+			this.db.roomExists(data.room, (error, roomExists) =>
+			{
+				if(!roomExists)
+					return socket.emit('error', "Room not found");
 
+				this.db.getRoom(data.room, (error, room) =>
+				{
+					let mirror = {
+						id: socket.id,
+						room: room.id,
+						x: 0,
+						y: 0
+					};
+		
+					this.db.setClient(mirror, () =>
+					{
+						this.db.addClientToRoom(room.id, mirror.id, () =>
+						{
+
+						});
+					});
+
+					this.db.getClientsForRoom(room.id, (error, clientIds) =>
+					{
+						//console.log("client ids: ");
+						//console.log(clientIds);
+
+						this.db.getClients(clientIds, (clients) =>
+						{
+							//console.log("clients: ");
+							//console.log(clients);
+							socket.emit('joined', {"mirror": mirror, "clients": clients});
+						});
+
+						// Let everyone in that room know they've joined
+						this.io.to(room.id).emit('new', mirror);
+					});
+				});
+
+				// Join room
+				socket.join(data.room);
+			});
+		});
+	}
+
+	private leave(socket)
+	{
+		socket.on('disconnect', () =>
+		{
+			// Get client
+			this.db.getClient(socket.id, (error, client) =>
+			{
+				if(client)
+				{
+					// Get room of client
+					this.db.getRoom(client.room, (error, room) =>
+					{
+						// Let everyone in that room know they've left
+						this.io.to(room.id).emit('leave', client.id);
+						
+						// If client is room host
+						if(room.host == client.id)
+						{
+							// Remove room
+							//this.db.removeRoom(room);
+						}
+
+						// Remove client from redis
+						this.db.removeClient(client);
+					});
+				}
+			});
+		});
+	}
+
+	private move(socket)
+	{
+		/*
+		socket.on('move', (data) =>
+		{
 			if(!(data.room in this.rooms))
 			{
-				socket.emit('joined.error', "Room not found");
+				socket.emit('error', "Room not found");
 
 				return;
 			}
 
 			let room = this.rooms[data.room];
 
-			room.addClient(client);
+			room.updateClientLocation(data.client, data.location[0], data.location[1]);
 
-			let payload = {
-				"id": client.getId(),
-				"room": room.getId(),
-				"clients": room.serializeClients()
-			};
-
-			socket.emit('joined.success', payload);
-
-			// Let everyone in that room know they've joined
-			for(let otherClient of room.getClients())
+			// Let everyone in that room know they've moved
+			for(let client of room.getClients())
 			{
-				if(otherClient.getId() == client.getId())
+				if(client.getId() == data.client)
 					break;
 				
-				otherClient.getConnection().emit('new', {"id": client.getId()});
+				client.getConnection().emit('moved', {"id": client.getId(), "location": [data.location[0], data.location[1]]});
 			}
 		});
+		*/
 	}
 }

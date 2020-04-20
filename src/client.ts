@@ -1,37 +1,38 @@
-import * as Helper from './helpers';
-
 export class Client
 {
-	private id: string;
+	public id: string;
 
-	private connection: any;
+	public room: string;
 
-	private host: boolean;
+	public host: boolean;
 
-	constructor(connection)
+	public x: number;
+
+	public y: number;
+
+	constructor(connection: any, room: string)
 	{
-		this.id = Helper.guid();
-
-		this.connection = connection;
+		this.id = connection.id;
+		this.room = room;
 	}
 
-	public getId(): string
+	public serialize(): object
 	{
-		return this.id;
+		return {
+			"id": this.id,
+			"room": this.room,
+			"host": this.host,
+			"x": this.x,
+			"y": this.y
+		};
 	}
 
-	public getConnection()
+	public deserialize(data)
 	{
-		return this.connection;
-	}
-
-	public setHost(host: boolean)
-	{
-		this.host = host;
-	}
-
-	public isHost(): boolean
-	{
-		return this.host;
+		this.id = data.id;
+		this.room = data.room;
+		this.host = data.host;
+		this.x = data.x;
+		this.y = data.y;
 	}
 }

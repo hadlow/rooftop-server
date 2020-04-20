@@ -1,22 +1,25 @@
 "use strict";
 exports.__esModule = true;
-var Helper = require("./helpers");
 var Client = /** @class */ (function () {
-    function Client(connection) {
-        this.id = Helper.guid();
-        this.connection = connection;
+    function Client(connection, room) {
+        this.id = connection.id;
+        this.room = room;
     }
-    Client.prototype.getId = function () {
-        return this.id;
+    Client.prototype.serialize = function () {
+        return {
+            "id": this.id,
+            "room": this.room,
+            "host": this.host,
+            "x": this.x,
+            "y": this.y
+        };
     };
-    Client.prototype.getConnection = function () {
-        return this.connection;
-    };
-    Client.prototype.setHost = function (host) {
-        this.host = host;
-    };
-    Client.prototype.isHost = function () {
-        return this.host;
+    Client.prototype.deserialize = function (data) {
+        this.id = data.id;
+        this.room = data.room;
+        this.host = data.host;
+        this.x = data.x;
+        this.y = data.y;
     };
     return Client;
 }());

@@ -3,23 +3,35 @@ import { Client } from 'client';
 
 export class Room
 {
-	private id: string;
+	public id: string;
 
-	private clients: Client[] = [];
+	public password: string;
+
+	public background: string;
+
+	public host: string;
+
+	//private clients: Client[] = [];
 
 	constructor()
 	{
 		this.id = Helper.roomId();
 	}
 
-	public getId(): string
+	public serialize(): object
 	{
-		return this.id;
+		return {
+			"id": this.id,
+			"password": this.password,
+			"background": this.background,
+			"host": this.host,
+		};
 	}
 
+	/*
 	public addClient(client: Client)
 	{
-		this.clients.push(client);
+		this.clients[client.getId()] = client;
 	}
 
 	public getClients(): Client[]
@@ -27,12 +39,19 @@ export class Room
 		return this.clients;
 	}
 
+	public getClient(client: string): Client
+	{
+		return this.clients[client];
+	}
+
 	public serializeClients(): object[]
 	{
 		let clients: object[] = [];
 
-		for(let client of this.clients)
+		for(let clientId in this.clients)
 		{
+			var client = this.clients[clientId];
+
 			let clientString = {
 				"id": client.getId()
 			};
@@ -42,4 +61,10 @@ export class Room
 
 		return clients;
 	}
+
+	public updateClientLocation(client: string, x: number, y: number)
+	{
+		this.getClient(client).setLocation(x, y);
+	}
+	*/
 }
