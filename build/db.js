@@ -23,7 +23,7 @@ var DB = /** @class */ (function () {
         for (var _i = 0, clientIds_1 = clientIds; _i < clientIds_1.length; _i++) {
             var client = clientIds_1[_i];
             (function (client) {
-                _this.client.hgetall('client.' + client, function (err, reply) {
+                _this.client.hgetall('client.' + client, function (error, reply) {
                     clients.push(reply);
                     --remaining;
                     if (remaining === 0)
@@ -31,6 +31,9 @@ var DB = /** @class */ (function () {
                 });
             })(client);
         }
+    };
+    DB.prototype.updateClientLocation = function (id, x, y, callback) {
+        this.setClient({ "id": id, "x": x, "y": y }, callback);
     };
     DB.prototype.removeClient = function (client) {
         // Remove client from room
@@ -48,8 +51,9 @@ var DB = /** @class */ (function () {
         this.client.rpush("room.clients." + room, client, callback);
     };
     DB.prototype.removeClientFromRoom = function (room, client) {
-        this.client.lrem('room.clients.' + room, 0, client, function (err, data) {
-            console.log(data);
+        this.client.lrem('room.clients.' + room, 0, client, function (error, data) {
+            if (error)
+                throw error;
         });
     };
     DB.prototype.roomExists = function (id, callback) {

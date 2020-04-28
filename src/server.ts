@@ -14,13 +14,13 @@ export class Server
 
 		this.io.on('connection', (socket) =>
 		{
-			console.log("Joinging: " + socket.id);
-
 			this.create(socket);
 
 			this.join(socket);
 
 			this.move(socket);
+
+			this.message(socket);
 
 			this.leave(socket);
 		});
@@ -40,8 +40,8 @@ export class Server
 			let client = {
 				id: socket.id,
 				room: room.id,
-				x: 0,
-				y: 0
+				x: 200,
+				y: 200
 			};
 
 			this.db.setClient(client, () =>
@@ -77,37 +77,69 @@ export class Server
 					let mirror = {
 						id: socket.id,
 						room: room.id,
-						x: 0,
-						y: 0
+						x: Math.floor(Math.random() * Math.floor(400)),
+						y: Math.floor(Math.random() * Math.floor(400))
 					};
 		
 					this.db.setClient(mirror, () =>
 					{
 						this.db.addClientToRoom(room.id, mirror.id, () =>
 						{
-
+							this.db.getClientsForRoom(room.id, (error, clientIds) =>
+							{
+								this.db.getClients(clientIds, (clients) =>
+								{
+									socket.emit('joined', {"mirror": mirror, "clients": clients});
+								});
+		
+								// Let everyone in that room know they've joined
+								this.io.to(room.id).emit('new', mirror);
+							});
 						});
-					});
-
-					this.db.getClientsForRoom(room.id, (error, clientIds) =>
-					{
-						//console.log("client ids: ");
-						//console.log(clientIds);
-
-						this.db.getClients(clientIds, (clients) =>
-						{
-							//console.log("clients: ");
-							//console.log(clients);
-							socket.emit('joined', {"mirror": mirror, "clients": clients});
-						});
-
-						// Let everyone in that room know they've joined
-						this.io.to(room.id).emit('new', mirror);
 					});
 				});
 
 				// Join room
 				socket.join(data.room);
+			});
+		});
+	}
+
+	private move(socket)
+	{
+		socket.on('move', (data) =>
+		{
+			// If room doesn't exist then let the client know
+			this.db.roomExists(data.room, (error, roomExists) =>
+			{
+				if(!roomExists)
+					return socket.emit('error', "Room not found");
+
+				this.db.getRoom(data.room, (error, room) =>
+				{
+
+				});
+
+				this.db.updateClientLocation(data.client, data.location[0], data.location[1], () =>
+				{
+					// Let everyone in that room know they've moved
+					this.io.to(data.room).emit('moved', {"id": data.client, "location": [data.location[0], data.location[1]]});
+				});
+			});
+		});
+	}
+
+	private message(socket)
+	{
+		socket.on('message', (data) =>
+		{
+			// If room doesn't exist then let the client know
+			this.db.roomExists(data.room, (error, roomExists) =>
+			{
+				if(!roomExists)
+					return socket.emit('error', "Room not found");
+
+				this.io.to(data.room).emit('message', {"id": data.client, "message": data.message});
 			});
 		});
 	}
@@ -140,33 +172,5 @@ export class Server
 				}
 			});
 		});
-	}
-
-	private move(socket)
-	{
-		/*
-		socket.on('move', (data) =>
-		{
-			if(!(data.room in this.rooms))
-			{
-				socket.emit('error', "Room not found");
-
-				return;
-			}
-
-			let room = this.rooms[data.room];
-
-			room.updateClientLocation(data.client, data.location[0], data.location[1]);
-
-			// Let everyone in that room know they've moved
-			for(let client of room.getClients())
-			{
-				if(client.getId() == data.client)
-					break;
-				
-				client.getConnection().emit('moved', {"id": client.getId(), "location": [data.location[0], data.location[1]]});
-			}
-		});
-		*/
 	}
 }

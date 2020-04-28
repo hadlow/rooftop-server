@@ -8,10 +8,10 @@ var Server = /** @class */ (function () {
         this.io = io;
         this.db = new db_1.DB();
         this.io.on('connection', function (socket) {
-            console.log("Joinging: " + socket.id);
             _this.create(socket);
             _this.join(socket);
             _this.move(socket);
+            _this.message(socket);
             _this.leave(socket);
         });
     }
@@ -27,8 +27,8 @@ var Server = /** @class */ (function () {
             var client = {
                 id: socket.id,
                 room: room.id,
-                x: 0,
-                y: 0
+                x: 200,
+                y: 200
             };
             _this.db.setClient(client, function () {
                 _this.db.setRoom(room, function () {
@@ -52,27 +52,50 @@ var Server = /** @class */ (function () {
                     var mirror = {
                         id: socket.id,
                         room: room.id,
-                        x: 0,
-                        y: 0
+                        x: Math.floor(Math.random() * Math.floor(400)),
+                        y: Math.floor(Math.random() * Math.floor(400))
                     };
                     _this.db.setClient(mirror, function () {
                         _this.db.addClientToRoom(room.id, mirror.id, function () {
+                            _this.db.getClientsForRoom(room.id, function (error, clientIds) {
+                                _this.db.getClients(clientIds, function (clients) {
+                                    socket.emit('joined', { "mirror": mirror, "clients": clients });
+                                });
+                                // Let everyone in that room know they've joined
+                                _this.io.to(room.id).emit('new', mirror);
+                            });
                         });
-                    });
-                    _this.db.getClientsForRoom(room.id, function (error, clientIds) {
-                        //console.log("client ids: ");
-                        //console.log(clientIds);
-                        _this.db.getClients(clientIds, function (clients) {
-                            //console.log("clients: ");
-                            //console.log(clients);
-                            socket.emit('joined', { "mirror": mirror, "clients": clients });
-                        });
-                        // Let everyone in that room know they've joined
-                        _this.io.to(room.id).emit('new', mirror);
                     });
                 });
                 // Join room
                 socket.join(data.room);
+            });
+        });
+    };
+    Server.prototype.move = function (socket) {
+        var _this = this;
+        socket.on('move', function (data) {
+            // If room doesn't exist then let the client know
+            _this.db.roomExists(data.room, function (error, roomExists) {
+                if (!roomExists)
+                    return socket.emit('error', "Room not found");
+                _this.db.getRoom(data.room, function (error, room) {
+                });
+                _this.db.updateClientLocation(data.client, data.location[0], data.location[1], function () {
+                    // Let everyone in that room know they've moved
+                    _this.io.to(data.room).emit('moved', { "id": data.client, "location": [data.location[0], data.location[1]] });
+                });
+            });
+        });
+    };
+    Server.prototype.message = function (socket) {
+        var _this = this;
+        socket.on('message', function (data) {
+            // If room doesn't exist then let the client know
+            _this.db.roomExists(data.room, function (error, roomExists) {
+                if (!roomExists)
+                    return socket.emit('error', "Room not found");
+                _this.io.to(data.room).emit('message', { "id": data.client, "message": data.message });
             });
         });
     };
@@ -97,32 +120,6 @@ var Server = /** @class */ (function () {
                 }
             });
         });
-    };
-    Server.prototype.move = function (socket) {
-        /*
-        socket.on('move', (data) =>
-        {
-            if(!(data.room in this.rooms))
-            {
-                socket.emit('error', "Room not found");
-
-                return;
-            }
-
-            let room = this.rooms[data.room];
-
-            room.updateClientLocation(data.client, data.location[0], data.location[1]);
-
-            // Let everyone in that room know they've moved
-            for(let client of room.getClients())
-            {
-                if(client.getId() == data.client)
-                    break;
-                
-                client.getConnection().emit('moved', {"id": client.getId(), "location": [data.location[0], data.location[1]]});
-            }
-        });
-        */
     };
     return Server;
 }());

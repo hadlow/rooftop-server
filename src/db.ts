@@ -35,7 +35,7 @@ export class DB
 		{
 			((client) =>
 			{
-				this.client.hgetall('client.' + client, function(err, reply)
+				this.client.hgetall('client.' + client, function(error, reply)
 				{
 					clients.push(reply);
 
@@ -46,6 +46,11 @@ export class DB
 				});
 			})(client);
 		}
+	}
+
+	public updateClientLocation(id, x, y, callback)
+	{
+		this.setClient({"id": id, "x": x, "y": y}, callback);
 	}
 
 	public removeClient(client: any)
@@ -74,9 +79,10 @@ export class DB
 
 	public removeClientFromRoom(room: string, client: string)
 	{
-		this.client.lrem('room.clients.' + room, 0, client, (err, data) =>
+		this.client.lrem('room.clients.' + room, 0, client, (error, data) =>
 		{
-			console.log(data);
+			if(error)
+				throw error;
 		});
 	}
 
