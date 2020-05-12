@@ -53,6 +53,11 @@ export class DB
 		this.setClient({"id": id, "x": x, "y": y}, callback);
 	}
 
+	public updateClientGroup(id, group, callback)
+	{
+		this.setClient({"id": id, "group": group}, callback);
+	}
+
 	public removeClient(client: any)
 	{
 		// Remove client from room

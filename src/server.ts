@@ -20,6 +20,8 @@ export class Server
 
 			this.move(socket);
 
+			this.group(socket);
+
 			this.message(socket);
 
 			this.leave(socket);
@@ -40,6 +42,7 @@ export class Server
 			let client = {
 				id: socket.id,
 				room: room.id,
+				group: "",
 				x: 200,
 				y: 200
 			};
@@ -77,6 +80,7 @@ export class Server
 					let mirror = {
 						id: socket.id,
 						room: room.id,
+						group: "",
 						x: Math.floor(Math.random() * Math.floor(400)),
 						y: Math.floor(Math.random() * Math.floor(400))
 					};
@@ -115,15 +119,60 @@ export class Server
 				if(!roomExists)
 					return socket.emit('error', "Room not found");
 
+				/*
 				this.db.getRoom(data.room, (error, room) =>
 				{
 
 				});
+				*/
 
 				this.db.updateClientLocation(data.client, data.location[0], data.location[1], () =>
 				{
 					// Let everyone in that room know they've moved
 					this.io.to(data.room).emit('moved', {"id": data.client, "location": [data.location[0], data.location[1]]});
+				});
+			});
+		});
+	}
+
+	private group(socket)
+	{
+		socket.on('group.create', (data) =>
+		{
+			// If room doesn't exist then let the client know
+			this.db.roomExists(data.room, (error, roomExists) =>
+			{
+				if(!roomExists)
+					return socket.emit('error', "Room not found");
+
+				let group = Helper.guid();
+
+				this.db.updateClientGroup(data.client, group, () =>
+				{
+					// Let everyone in that room know they've moved
+					this.io.to(data.room).emit('grouped', {"client": data.client, "group": group});
+				});
+
+				this.db.updateClientGroup(data.joining, group, () =>
+				{
+					// Let everyone in that room know they've moved
+					this.io.to(data.room).emit('grouped', {"client": data.joining, "group": group});
+				});
+			});
+		});
+
+		socket.on('group.join', (data) =>
+		{
+			// If room doesn't exist then let the client know
+			this.db.roomExists(data.room, (error, roomExists) =>
+			{
+				if(!roomExists)
+					return socket.emit('error', "Room not found");
+
+				this.db.updateClientGroup(data.client, data.group, () =>
+				{
+					// Let everyone in that room know they've moved
+					this.io.to(data.room).emit('grouped', {"client": data.client, "group": data.group});
 				});
 			});
 		});

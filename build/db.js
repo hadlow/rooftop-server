@@ -35,6 +35,9 @@ var DB = /** @class */ (function () {
     DB.prototype.updateClientLocation = function (id, x, y, callback) {
         this.setClient({ "id": id, "x": x, "y": y }, callback);
     };
+    DB.prototype.updateClientGroup = function (id, group, callback) {
+        this.setClient({ "id": id, "group": group }, callback);
+    };
     DB.prototype.removeClient = function (client) {
         // Remove client from room
         this.removeClientFromRoom(client.room, client.id);

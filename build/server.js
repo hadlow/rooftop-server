@@ -11,6 +11,7 @@ var Server = /** @class */ (function () {
             _this.create(socket);
             _this.join(socket);
             _this.move(socket);
+            _this.group(socket);
             _this.message(socket);
             _this.leave(socket);
         });
@@ -27,6 +28,7 @@ var Server = /** @class */ (function () {
             var client = {
                 id: socket.id,
                 room: room.id,
+                group: "",
                 x: 200,
                 y: 200
             };
@@ -52,6 +54,7 @@ var Server = /** @class */ (function () {
                     var mirror = {
                         id: socket.id,
                         room: room.id,
+                        group: "",
                         x: Math.floor(Math.random() * Math.floor(400)),
                         y: Math.floor(Math.random() * Math.floor(400))
                     };
@@ -79,11 +82,45 @@ var Server = /** @class */ (function () {
             _this.db.roomExists(data.room, function (error, roomExists) {
                 if (!roomExists)
                     return socket.emit('error', "Room not found");
-                _this.db.getRoom(data.room, function (error, room) {
+                /*
+                this.db.getRoom(data.room, (error, room) =>
+                {
+
                 });
+                */
                 _this.db.updateClientLocation(data.client, data.location[0], data.location[1], function () {
                     // Let everyone in that room know they've moved
                     _this.io.to(data.room).emit('moved', { "id": data.client, "location": [data.location[0], data.location[1]] });
+                });
+            });
+        });
+    };
+    Server.prototype.group = function (socket) {
+        var _this = this;
+        socket.on('group.create', function (data) {
+            // If room doesn't exist then let the client know
+            _this.db.roomExists(data.room, function (error, roomExists) {
+                if (!roomExists)
+                    return socket.emit('error', "Room not found");
+                var group = Helper.guid();
+                _this.db.updateClientGroup(data.client, group, function () {
+                    // Let everyone in that room know they've moved
+                    _this.io.to(data.room).emit('grouped', { "client": data.client, "group": group });
+                });
+                _this.db.updateClientGroup(data.joining, group, function () {
+                    // Let everyone in that room know they've moved
+                    _this.io.to(data.room).emit('grouped', { "client": data.joining, "group": group });
+                });
+            });
+        });
+        socket.on('group.join', function (data) {
+            // If room doesn't exist then let the client know
+            _this.db.roomExists(data.room, function (error, roomExists) {
+                if (!roomExists)
+                    return socket.emit('error', "Room not found");
+                _this.db.updateClientGroup(data.client, data.group, function () {
+                    // Let everyone in that room know they've moved
+                    _this.io.to(data.room).emit('grouped', { "client": data.client, "group": data.group });
                 });
             });
         });
