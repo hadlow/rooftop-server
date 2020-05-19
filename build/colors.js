@@ -1,0 +1,48 @@
+"use strict";
+exports.__esModule = true;
+exports.colors = [
+    'fb8a90',
+    'f99b8f',
+    'fbb68b',
+    'e192aa',
+    'f99b8d',
+    'f9af8f',
+    'fdd18c',
+    'fff189',
+    'b3e498',
+    'c1e4c4',
+    'c0c4ac',
+    'e6c3a8',
+    'c3a898',
+    'c6c199',
+    'cae195',
+    '7ed3a4',
+    '86d7ce',
+    '88d7cc',
+    '85b4b7',
+    '98b5b6',
+    'ccabbb',
+    'cdc3bb',
+    'd3e6b5',
+    '87d4c8',
+    '91d8f4',
+    '8fb8e3',
+    'a5b7e3',
+    'cb93ad',
+    'cda6aa',
+    'd0cda7',
+    '86b8b7',
+    '8cbce3',
+    '8f9bd0',
+    'e391aa',
+    'e0a4a9',
+    'e4cda7',
+    '98b8b7',
+    'a5bae0',
+    'a19ccd',
+    'c09acd',
+];
+function randomColor() {
+    return exports.colors[Math.floor(Math.random() * exports.colors.length)];
+}
+exports.randomColor = randomColor;
